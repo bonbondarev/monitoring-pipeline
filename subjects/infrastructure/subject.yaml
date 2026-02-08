@@ -1,0 +1,130 @@
+# Subject metadata
+name: "Infrastructure Monitor"
+slug: "infrastructure"
+emoji: "\U0001F3D7\uFE0F"
+description: "Government infrastructure investment"
+
+# ---- SEARCH KEYWORDS ----
+keywords:
+  # Water & Sewer
+  - "water main extension approved"
+  - "sewer line extension"
+  - "water service area expansion"
+  - "sewer district expansion"
+  - "utility extension project"
+  - "wastewater treatment expansion"
+  - "new water service area"
+  - "sewer capacity expansion"
+  - "lift station construction"
+  - "water tower construction"
+  - "pump station approved"
+  - "force main construction"
+  - "water system improvement"
+
+  # Roads & Transportation
+  - "new road construction approved"
+  - "highway interchange construction"
+  - "road widening project"
+  - "new bridge construction"
+  - "transportation improvement project"
+  - "road extension approved"
+  - "interchange approved"
+
+  # Utility Districts & Funding
+  - "municipal utility district created"
+  - "MUD district approved"
+  - "public improvement district created"
+  - "community development district"
+  - "TIF district infrastructure"
+  - "special assessment district"
+  - "infrastructure bond approved"
+  - "capital improvement plan adopted"
+
+  # Pre-construction signals
+  - "utility feasibility study"
+  - "infrastructure engineering study"
+  - "preliminary engineering report"
+  - "construction bid awarded infrastructure"
+  - "USDA water sewer grant"
+  - "state revolving fund water"
+  - "impact fee district"
+  - "developer infrastructure agreement"
+
+  # State-specific: Florida
+  - "community development district Florida"
+  - "CDD infrastructure Florida"
+
+  # State-specific: Texas
+  - "municipal utility district Texas"
+  - "MUD creation Texas"
+
+# ---- TARGET STATES (all 50) ----
+target_states:
+  - "AL"
+  - "AK"
+  - "AZ"
+  - "AR"
+  - "CA"
+  - "CO"
+  - "CT"
+  - "DE"
+  - "FL"
+  - "GA"
+  - "HI"
+  - "ID"
+  - "IL"
+  - "IN"
+  - "IA"
+  - "KS"
+  - "KY"
+  - "LA"
+  - "ME"
+  - "MD"
+  - "MA"
+  - "MI"
+  - "MN"
+  - "MS"
+  - "MO"
+  - "MT"
+  - "NE"
+  - "NV"
+  - "NH"
+  - "NJ"
+  - "NM"
+  - "NY"
+  - "NC"
+  - "ND"
+  - "OH"
+  - "OK"
+  - "OR"
+  - "PA"
+  - "RI"
+  - "SC"
+  - "SD"
+  - "TN"
+  - "TX"
+  - "UT"
+  - "VT"
+  - "VA"
+  - "WA"
+  - "WV"
+  - "WI"
+  - "WY"
+
+# ---- PIPELINE OVERRIDES (optional — falls back to global config.yaml) ----
+max_articles_per_run: 100
+min_opportunity_score: 5
+days_lookback: 1
+
+# ---- FIELD MAPPINGS ----
+custom_fields:
+  change_block:
+    before_field: "current_infrastructure"
+    before_label: "Current Infrastructure"
+    after_field: "planned_infrastructure"
+    after_label: "Planned Infrastructure"
+  extra_fields:
+    - field: "current_infrastructure"
+      default: ""
+    - field: "planned_infrastructure"
+      default: ""

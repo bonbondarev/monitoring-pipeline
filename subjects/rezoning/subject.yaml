@@ -1,0 +1,80 @@
+# Subject metadata
+name: "Rezoning Monitor"
+slug: "rezoning"
+emoji: "\U0001F4CD"
+description: "Government-initiated zoning changes"
+
+# ---- SEARCH KEYWORDS ----
+keywords:
+  # Core rezoning signals
+  - "city initiated rezoning"
+  - "rezoning approved"
+  - "rezoning proposal"
+  - "comprehensive plan amendment"
+  - "future land use map amendment"
+  - "future land use amendment"
+  - "zoning map amendment"
+  - "zoning overlay district"
+  - "zoning code amendment"
+
+  # Annexation
+  - "municipal annexation"
+  - "annexation petition filed"
+  - "annexation approved"
+  - "voluntary annexation"
+  - "urban growth boundary expansion"
+
+  # Transit / Overlay / Corridor (high-value early signals)
+  - "transit oriented development zone"
+  - "TOD overlay"
+  - "corridor rezoning"
+  - "station area plan zoning"
+  - "overlay district created"
+  - "planning overlay district"
+
+  # Pre-rezoning signals (6-18 months before actual rezoning)
+  - "comprehensive plan update"
+  - "mixed use designation"
+  - "form based code adoption"
+  - "density increase approved"
+
+  # State-specific: Florida
+  - "small scale future land use amendment"
+  - "large scale future land use amendment"
+  - "Florida annexation ordinance"
+
+  # High-signal additions
+  - "upzoning approved"
+  - "density bonus overlay"
+  - "mixed use overlay district"
+  - "residential upzoning"
+  - "height limit increase"
+
+# ---- TARGET STATES ----
+target_states:
+  - "FL"
+  - "TX"
+  - "CO"
+  - "MA"
+  - "AZ"
+  - "NC"
+  - "TN"
+  - "GA"
+
+# ---- PIPELINE OVERRIDES (optional — falls back to global config.yaml) ----
+max_articles_per_run: 100
+min_opportunity_score: 5
+days_lookback: 1
+
+# ---- FIELD MAPPINGS ----
+custom_fields:
+  change_block:
+    before_field: "current_zoning"
+    before_label: "Current"
+    after_field: "proposed_zoning"
+    after_label: "Proposed"
+  extra_fields:
+    - field: "current_zoning"
+      default: ""
+    - field: "proposed_zoning"
+      default: ""
