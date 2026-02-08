@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ subject_name }} — {{ date }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f4f5f7;
+            color: #24292f;
+            line-height: 1.6;
+            padding: 24px 16px;
+        }
+
+        .container { max-width: 760px; margin: 0 auto; }
+
+        /* ── Header ── */
+        .header {
+            margin-bottom: 24px;
+        }
+        .header h1 {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #24292f;
+            margin-bottom: 2px;
+        }
+        .header .date {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: #656d76;
+            letter-spacing: 0.3px;
+        }
+
+        /* ── Stats Bar ── */
+        .stats-bar {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin: 16px 0 8px 0;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .stat-item {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+        .stat-number {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #24292f;
+        }
+        .stat-label {
+            font-size: 0.72rem;
+            color: #656d76;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-sep {
+            color: #d0d7de;
+            font-size: 1.1rem;
+            margin: 0 4px;
+            user-select: none;
+        }
+
+        /* ── Type breakdown pills ── */
+        .type-pills {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin: 10px 0 24px 0;
+        }
+        .type-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            background: #eaeef2;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #656d76;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .type-pill-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            color: #24292f;
+        }
+
+        /* ── Section Headers ── */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 32px 0 16px 0;
+        }
+        .section-header h2 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #24292f;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        .section-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            font-weight: 600;
+            background: #ddf4ff;
+            color: #0969da;
+            padding: 1px 8px;
+            border-radius: 10px;
+            white-space: nowrap;
+        }
+        .section-line {
+            flex: 1;
+            height: 1px;
+            background: #d0d7de;
+        }
+
+        /* ── Article Cards ── */
+        .card {
+            background: #ffffff;
+            border: 1px solid #d0d7de;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 14px;
+            transition: box-shadow 0.15s ease, border-color 0.15s ease;
+        }
+        .card:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            border-color: #bbc0c7;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+        }
+
+        /* Score badges */
+        .score-badge {
+            width: 42px;
+            height: 42px;
+            min-width: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .score-high {
+            background: #ffebe9;
+            color: #cf222e;
+            border: 2px solid #cf222e;
+        }
+        .score-mid {
+            background: #fff8c5;
+            color: #9a6700;
+            border: 2px solid #bf8700;
+        }
+        .score-low {
+            background: #eaeef2;
+            color: #656d76;
+            border: 2px solid #afb8c1;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            line-height: 1.35;
+            margin-bottom: 6px;
+        }
+        .card-title a {
+            color: #0969da;
+            text-decoration: none;
+        }
+        .card-title a:hover { text-decoration: underline; }
+
+        /* Source & urgency */
+        .card-source {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            color: #656d76;
+            margin-bottom: 8px;
+        }
+        .urgency-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 0.68rem;
+            font-weight: 600;
+            padding: 1px 7px;
+            border-radius: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .urgency-approved { background: #dafbe1; color: #116329; }
+        .urgency-hearing { background: #fff8c5; color: #7d4e00; }
+        .urgency-proposed { background: #ddf4ff; color: #0550ae; }
+
+        /* Tags */
+        .tags {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin: 8px 0;
+        }
+        .tag {
+            padding: 2px 9px;
+            border-radius: 10px;
+            font-size: 0.68rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .tag-type { background: #ddf4ff; color: #0550ae; }
+        .tag-status { background: #fbefff; color: #8250df; }
+        .tag-location { background: #dafbe1; color: #116329; }
+
+        /* Change block (zoning / infrastructure) */
+        .change-block {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 12px 0;
+            padding: 10px 14px;
+            background: #f6f8fa;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+        .change-label {
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #656d76;
+            margin-bottom: 1px;
+        }
+        .change-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #24292f;
+        }
+        .change-arrow {
+            color: #1a7f37;
+            font-size: 1.2rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        /* Metadata line */
+        .meta-line {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            font-size: 0.8rem;
+            color: #656d76;
+            margin: 10px 0;
+        }
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .meta-label {
+            font-weight: 600;
+            color: #57606a;
+        }
+
+        /* Analysis block */
+        .analysis {
+            font-size: 0.84rem;
+            color: #57606a;
+            margin-top: 12px;
+            padding: 10px 14px;
+            background: #f8f9fb;
+            border-left: 3px solid #d5d9e0;
+            border-radius: 0 6px 6px 0;
+            line-height: 1.55;
+        }
+
+        /* Next steps block */
+        .next-steps {
+            font-size: 0.84rem;
+            margin-top: 10px;
+            padding: 10px 14px;
+            background: #f0f6ff;
+            border-left: 3px solid #2563a8;
+            border-radius: 0 6px 6px 0;
+            color: #24292f;
+            line-height: 1.55;
+        }
+        .next-steps-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.62rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #2563a8;
+            margin-bottom: 3px;
+        }
+
+        /* ── No results ── */
+        .no-results {
+            text-align: center;
+            padding: 48px 20px;
+            color: #656d76;
+        }
+        .no-results h2 {
+            font-size: 1.1rem;
+            color: #57606a;
+            margin-bottom: 6px;
+        }
+
+        /* ── Filtered (collapsible) ── */
+        .filtered-section {
+            margin-top: 36px;
+        }
+        .filtered-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            user-select: none;
+            padding: 10px 0;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-family: inherit;
+        }
+        .filtered-toggle h2 {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #57606a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        .filtered-toggle .toggle-icon {
+            font-size: 0.7rem;
+            color: #656d76;
+            transition: transform 0.2s ease;
+        }
+        .filtered-toggle .section-count {
+            background: #eaeef2;
+            color: #656d76;
+        }
+        .filtered-toggle .section-line {
+            flex: 1;
+            height: 1px;
+            background: #d0d7de;
+        }
+        .filtered-body {
+            display: none;
+            padding-top: 4px;
+        }
+        .filtered-body.open {
+            display: block;
+        }
+        .filtered-item {
+            font-size: 0.78rem;
+            color: #656d76;
+            padding: 5px 0;
+            border-bottom: 1px solid #eaeef2;
+            display: flex;
+            gap: 8px;
+        }
+        .filtered-item:last-child { border-bottom: none; }
+        .kill-headline {
+            color: #57606a;
+            flex-shrink: 1;
+        }
+        .kill-reason {
+            color: #8b949e;
+            font-style: italic;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .filtered-more {
+            font-size: 0.75rem;
+            color: #8b949e;
+            padding-top: 6px;
+        }
+
+        /* ── Footer ── */
+        .footer {
+            margin-top: 40px;
+            padding-top: 16px;
+            border-top: 1px solid #d0d7de;
+            font-size: 0.72rem;
+            color: #8b949e;
+            text-align: center;
+            letter-spacing: 0.2px;
+        }
+
+        /* ── Mobile responsive ── */
+        @media (max-width: 600px) {
+            body { padding: 14px 10px; }
+            .header h1 { font-size: 1.25rem; }
+            .stats-bar { flex-wrap: wrap; gap: 6px; }
+            .stat-number { font-size: 1.2rem; }
+            .card { padding: 16px; }
+            .score-badge { width: 36px; height: 36px; min-width: 36px; font-size: 0.95rem; }
+            .change-block { flex-wrap: wrap; gap: 6px; }
+            .meta-line { gap: 10px; }
+            .filtered-item { flex-direction: column; gap: 2px; }
+            .kill-reason { white-space: normal; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>{{ subject_name }}</h1>
+            <div class="date">{{ date }}</div>
+
+            <!-- Stats bar -->
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <span class="stat-number">{{ scanned_count }}</span>
+                    <span class="stat-label">Scanned</span>
+                </div>
+                <span class="stat-sep">/</span>
+                <div class="stat-item">
+                    <span class="stat-number">{{ kept_count }}</span>
+                    <span class="stat-label">Kept</span>
+                </div>
+                <span class="stat-sep">/</span>
+                <div class="stat-item">
+                    <span class="stat-number">{{ killed_count }}</span>
+                    <span class="stat-label">Filtered</span>
+                </div>
+            </div>
+
+            <!-- Type breakdown pills -->
+            {% if classification_counts %}
+            <div class="type-pills">
+                {% for cls, count in classification_counts.items() %}
+                <span class="type-pill">
+                    <span class="type-pill-count">{{ count }}</span> {{ cls }}
+                </span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ── Opportunity Cards ── -->
+        {% if kept_articles %}
+        <div class="section-header">
+            <h2>Opportunities</h2>
+            <span class="section-count">{{ kept_count }}</span>
+            <span class="section-line"></span>
+        </div>
+
+        {% for article in kept_articles %}
+        <div class="card">
+            <div class="card-header">
+                <div class="score-badge {% if article.score >= 8 %}score-high{% elif article.score >= 6 %}score-mid{% else %}score-low{% endif %}">
+                    {{ article.score }}
+                </div>
+                <div>
+                    <div class="card-title">
+                        <a href="{{ article.source_url or article.url or '#' }}" target="_blank" rel="noopener">
+                            {{ article.headline }}
+                        </a>
+                    </div>
+                    <div class="card-source">
+                        {% if article.city or article.state %}
+                            {{ article.city }}{% if article.city and article.state %}, {% endif %}{{ article.state }}
+                        {% endif %}
+                        {% if article.stage %}
+                        <span class="urgency-badge {% if article.stage|lower in ['approved', 'enacted', 'final', 'completed', 'under construction'] %}urgency-approved{% elif article.stage|lower in ['hearing', 'public hearing', 'review', 'commission review', 'vote'] %}urgency-hearing{% else %}urgency-proposed{% endif %}">
+                            {% if article.stage|lower in ['approved', 'enacted', 'final', 'completed', 'under construction'] %}&#x2713;{% elif article.stage|lower in ['hearing', 'public hearing', 'review', 'commission review', 'vote'] %}&#x25C9;{% else %}&#x29D6;{% endif %}
+                            {{ article.stage }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="tags">
+                        {% if article.classification %}
+                        <span class="tag tag-type">{{ article.classification }}</span>
+                        {% endif %}
+                        {% if article.stage %}
+                        <span class="tag tag-status">{{ article.stage }}</span>
+                        {% endif %}
+                        {% if article.city or article.state %}
+                        <span class="tag tag-location">{{ article.city }}{% if article.city and article.state %}, {% endif %}{{ article.state }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic change block (zoning before→after, infrastructure current→planned, etc.) -->
+            {% if change_block %}
+            {% set before_val = article[change_block.before_field]|default('', true) %}
+            {% set after_val = article[change_block.after_field]|default('', true) %}
+            {% if before_val or after_val %}
+            <div class="change-block">
+                {% if before_val %}
+                <div>
+                    <div class="change-label">{{ change_block.before_label }}</div>
+                    <div class="change-value">{{ before_val }}</div>
+                </div>
+                {% endif %}
+                {% if before_val and after_val %}
+                <span class="change-arrow">→</span>
+                {% endif %}
+                {% if after_val %}
+                <div>
+                    <div class="change-label">{{ change_block.after_label }}</div>
+                    <div class="change-value">{{ after_val }}</div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% endif %}
+
+            <!-- Metadata line -->
+            <div class="meta-line">
+                {% if article.initiator %}
+                <div class="meta-item">
+                    <span class="meta-label">Initiator:</span>
+                    <span>{{ article.initiator }}</span>
+                </div>
+                {% endif %}
+                {% if article.location_details %}
+                <div class="meta-item">
+                    <span class="meta-label">Scale:</span>
+                    <span>{{ article.location_details }}</span>
+                </div>
+                {% endif %}
+                {% if article.timeline %}
+                <div class="meta-item">
+                    <span class="meta-label">Timeline:</span>
+                    <span>{{ article.timeline }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Analysis -->
+            {% if article.reasoning %}
+            <div class="analysis">{{ article.reasoning }}</div>
+            {% endif %}
+
+            <!-- Next steps -->
+            {% if article.next_steps %}
+            <div class="next-steps">
+                <div class="next-steps-label">Next Steps</div>
+                {{ article.next_steps }}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        {% else %}
+        <div class="no-results">
+            <h2>No Opportunities Found</h2>
+            <p>All {{ killed_count }} articles were filtered out by the intelligence prompt.</p>
+        </div>
+        {% endif %}
+
+        <!-- ── Filtered Articles (collapsible) ── -->
+        {% if killed_articles %}
+        <div class="filtered-section">
+            <button class="filtered-toggle" onclick="document.getElementById('filtered-body').classList.toggle('open'); this.querySelector('.toggle-icon').classList.toggle('rotated');">
+                <span class="toggle-icon">&#x25B6;</span>
+                <h2>Filtered Out</h2>
+                <span class="section-count">{{ killed_count }}</span>
+                <span class="section-line"></span>
+            </button>
+            <div id="filtered-body" class="filtered-body">
+                {% for article in killed_articles[:20] %}
+                <div class="filtered-item">
+                    <span class="kill-headline">{{ article.headline }}</span>
+                    {% if article.reasoning %}
+                    <span class="kill-reason">— {{ article.reasoning }}</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% if killed_articles|length > 20 %}
+                <div class="filtered-more">
+                    ... and {{ killed_articles|length - 20 }} more
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Footer -->
+        <div class="footer">
+            {{ subject_name }} · LotPotential LLC
+        </div>
+    </div>
+
+    <style>
+        .toggle-icon.rotated { transform: rotate(90deg); }
+    </style>
+</body>
+</html>
