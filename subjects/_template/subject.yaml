@@ -1,0 +1,45 @@
+# ─────────────────────────────────────────────────────────
+# Subject Configuration Template
+# Copy this folder to subjects/<your-subject>/ and fill in.
+# ─────────────────────────────────────────────────────────
+
+# Subject metadata (REQUIRED)
+name: "My Subject Monitor"         # Display name shown in reports and Telegram
+slug: "my-subject"                  # Must match the folder name under subjects/
+emoji: "\U0001F50D"                 # Emoji prefix for Telegram messages
+description: "Brief description"    # Shown in --list-subjects output
+
+# ---- SEARCH KEYWORDS (REQUIRED) ----
+# Google News RSS search queries. Each keyword becomes a separate RSS fetch.
+# More specific keywords = higher signal-to-noise ratio.
+keywords:
+  - "example keyword one"
+  - "example keyword two"
+
+# ---- TARGET STATES (REQUIRED) ----
+# Two-letter US state codes. Only articles from these states are kept.
+target_states:
+  - "FL"
+  - "TX"
+
+# ---- PIPELINE OVERRIDES (OPTIONAL) ----
+# These override global config.yaml values for this subject only.
+# If omitted, global defaults are used.
+# max_articles_per_run: 100       # Max articles to fetch per run
+# min_opportunity_score: 5        # Minimum score (1-10) to keep an article
+# days_lookback: 1                # How many days back to search
+
+# ---- FIELD MAPPINGS (REQUIRED for change block in reports) ----
+# Defines the before→after change block shown in report cards.
+# The field names must match what your prompt.md tells Claude to return.
+custom_fields:
+  change_block:
+    before_field: "current_state"   # JSON field name Claude returns for "before"
+    before_label: "Current"         # Label shown in the report
+    after_field: "proposed_state"   # JSON field name Claude returns for "after"
+    after_label: "Proposed"         # Label shown in the report
+  extra_fields:                     # Additional optional fields Claude may return
+    - field: "current_state"        # Must match before_field above
+      default: ""                   # Default if Claude doesn't return it
+    - field: "proposed_state"       # Must match after_field above
+      default: ""
