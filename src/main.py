@@ -190,6 +190,40 @@ def run_pipeline(
     )
     run_data["report_path"] = str(report_path) if report_path else None
 
+    # --- SAVE OPPORTUNITIES JSON (for Stage 2 research pipeline) ---
+    if kept:
+        json_dir = PROJECT_ROOT / "reports" / subject_slug
+        json_dir.mkdir(parents=True, exist_ok=True)
+        json_path = json_dir / f"{date_str}.json"
+        opportunities = [
+            {
+                "headline": a.get("headline", ""),
+                "source_url": a.get("source_url", a.get("url", "")),
+                "classification": a.get("classification", ""),
+                "score": a.get("score", 0),
+                "city": a.get("city", ""),
+                "state": a.get("state", ""),
+                "location_details": a.get("location_details", ""),
+                "stage": a.get("stage", ""),
+                "initiator": a.get("initiator", ""),
+                "timeline": a.get("timeline", ""),
+                "reasoning": a.get("reasoning", ""),
+                "next_steps": a.get("next_steps", ""),
+                "subject": subject_slug,
+                "date": date_str,
+            }
+            for a in kept
+        ]
+        # Include subject-specific custom fields
+        if custom_fields and "extra_fields" in custom_fields:
+            for opp, article in zip(opportunities, kept):
+                for field_spec in custom_fields["extra_fields"]:
+                    field_name = field_spec["field"]
+                    opp[field_name] = article.get(field_name, "")
+        json_path.write_text(json.dumps(opportunities, indent=2), encoding="utf-8")
+        run_data["opportunities_json"] = str(json_path)
+        logger.info("[%s] Saved %d opportunities to %s", subject_slug, len(kept), json_path)
+
     # --- DELIVER VIA TELEGRAM ---
     if config.get("telegram_enabled"):
         bot = _get_telegram_bot(subject_name, subject_emoji)

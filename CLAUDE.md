@@ -15,6 +15,7 @@ Owner: LotPotential LLC
 - Custom date range: `python src/main.py --subject rezoning --days 7`
 - Test Telegram: `python src/main.py --test-telegram`
 - Lint: `ruff check src/`
+- Stage 2 JSON output: `reports/<subject>/YYYY-MM-DD.json` (consumed by deal-research pipeline)
 
 ## Architecture
 - src/main.py: Orchestrates full pipeline with --subject flag
