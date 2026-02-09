@@ -17,7 +17,6 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-import yaml  # noqa: E402
 from dotenv import load_dotenv  # noqa: E402
 
 from src.analyzer import analyze_articles  # noqa: E402
