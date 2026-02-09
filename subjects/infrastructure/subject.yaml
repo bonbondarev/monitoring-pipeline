@@ -6,57 +6,61 @@ description: "Government infrastructure investment"
 
 # ---- SEARCH KEYWORDS ----
 keywords:
-  # Water & Sewer
+  # Water & Sewer EXTENSIONS (highest signal — converts unbuildable to buildable)
   - "water main extension approved"
-  - "sewer line extension"
+  - "sewer line extension approved"
   - "water service area expansion"
-  - "sewer district expansion"
-  - "utility extension project"
-  - "wastewater treatment expansion"
+  - "sewer district expansion approved"
+  - "wastewater treatment expansion approved"
   - "new water service area"
-  - "sewer capacity expansion"
-  - "lift station construction"
-  - "water tower construction"
-  - "pump station approved"
-  - "force main construction"
-  - "water system improvement"
+  - "sewer capacity expansion approved"
+  - "new lift station approved"
+  - "new water tower approved"
+  - "new pump station approved"
+  - "force main extension"
+  - "utility extension unserved area"
+  - "septic to sewer conversion"
 
-  # Roads & Transportation
+  # New Roads & Access (only NEW corridors, not repairs)
   - "new road construction approved"
-  - "highway interchange construction"
-  - "road widening project"
-  - "new bridge construction"
-  - "transportation improvement project"
-  - "road extension approved"
-  - "interchange approved"
+  - "new interchange approved"
+  - "new road connection approved"
+  - "road extension approved new"
+  - "new bridge construction approved"
 
-  # Utility Districts & Funding
+  # Utility Districts (very high signal — purpose-built for development)
   - "municipal utility district created"
   - "MUD district approved"
   - "public improvement district created"
-  - "community development district"
-  - "TIF district infrastructure"
-  - "special assessment district"
+  - "community development district created"
+  - "TIF district created infrastructure"
+  - "special assessment district created"
+  - "tax increment financing infrastructure"
+
+  # Capital Improvement / Funding (expansion-focused)
+  - "capital improvement plan adopted infrastructure"
   - "infrastructure bond approved"
-  - "capital improvement plan adopted"
+  - "USDA water sewer grant awarded"
+  - "state revolving fund loan awarded"
+  - "impact fee district created"
 
-  # Pre-construction signals
-  - "utility feasibility study"
-  - "infrastructure engineering study"
-  - "preliminary engineering report"
-  - "construction bid awarded infrastructure"
-  - "USDA water sewer grant"
-  - "state revolving fund water"
-  - "impact fee district"
-  - "developer infrastructure agreement"
+  # Annexation for Services (land gaining municipal utilities)
+  - "annexation approved utility service"
+  - "municipal annexation water sewer"
+  - "voluntary annexation approved"
 
-  # State-specific: Florida
-  - "community development district Florida"
-  - "CDD infrastructure Florida"
+  # Pre-construction signals (specific enough to be actionable)
+  - "utility feasibility study approved"
+  - "infrastructure engineering study approved"
+  - "developer infrastructure agreement approved"
 
-  # State-specific: Texas
-  - "municipal utility district Texas"
-  - "MUD creation Texas"
+  # State-specific: Florida CDDs
+  - "community development district Florida created"
+  - "CDD petition Florida"
+
+  # State-specific: Texas MUDs
+  - "municipal utility district Texas created"
+  - "MUD creation Texas approved"
 
 # ---- TARGET STATES (all 50) ----
 target_states:
@@ -113,7 +117,7 @@ target_states:
 
 # ---- PIPELINE OVERRIDES (optional — falls back to global config.yaml) ----
 max_articles_per_run: 100
-min_opportunity_score: 5
+min_opportunity_score: 6
 days_lookback: 1
 
 # ---- FIELD MAPPINGS ----
