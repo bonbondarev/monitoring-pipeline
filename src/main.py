@@ -67,7 +67,10 @@ def _get_telegram_bot(
 
 
 def run_pipeline(
-    subject: dict, days_override: int | None = None, dry_run: bool = False
+    subject: dict,
+    days_override: int | None = None,
+    dry_run: bool = False,
+    use_batch_api: bool = False,
 ) -> dict:
     """Execute the full pipeline for a single subject. Returns run summary dict."""
     config = subject["config"]
@@ -155,14 +158,16 @@ def run_pipeline(
     custom_fields = subject.get("custom_fields", {})
     extra_fields = custom_fields.get("extra_fields", [])
 
-    analyzed = analyze_articles(
+    analyzed, token_usage = analyze_articles(
         articles,
         system_prompt=subject["system_prompt"],
         model=model,
         extra_fields=extra_fields,
         subject_slug=subject_slug,
+        use_batch_api=use_batch_api,
     )
     run_data["articles_analyzed"] = len(analyzed)
+    run_data["token_usage"] = token_usage
 
     min_score = config.get("min_opportunity_score", 5)
     kept = [
@@ -303,6 +308,11 @@ def main():
         help="Send a test message to Telegram and exit",
     )
     parser.add_argument(
+        "--batch-api",
+        action="store_true",
+        help="Use Messages Batch API (50%% cheaper, async — for cron jobs)",
+    )
+    parser.add_argument(
         "--verbose",
         action="store_true",
         help="Enable DEBUG logging",
@@ -348,7 +358,8 @@ def main():
             try:
                 subject = load_subject(slug)
                 run_data = run_pipeline(
-                    subject, days_override=args.days, dry_run=args.dry_run
+                    subject, days_override=args.days, dry_run=args.dry_run,
+                    use_batch_api=args.batch_api,
                 )
                 log_path = save_run_log(run_data, subject_slug=slug)
                 logger.info("[%s] Run log saved to %s", slug, log_path)
@@ -384,7 +395,8 @@ def main():
     try:
         subject = load_subject(args.subject)
         run_data = run_pipeline(
-            subject, days_override=args.days, dry_run=args.dry_run
+            subject, days_override=args.days, dry_run=args.dry_run,
+            use_batch_api=args.batch_api,
         )
         log_path = save_run_log(run_data, subject_slug=args.subject)
         logger.info("Run log saved to %s", log_path)
