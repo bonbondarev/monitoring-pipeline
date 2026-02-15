@@ -3,6 +3,7 @@
 import json
 import logging
 import re
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -66,18 +67,32 @@ def analyze_articles(
 
     client = anthropic.Anthropic()
     all_results = []
+    total_usage = {"input_tokens": 0, "output_tokens": 0,
+                   "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}
 
     batches = [articles[i : i + batch_size] for i in range(0, len(articles), batch_size)]
     logger.info("Analyzing %d articles in %d batch(es)", len(articles), len(batches))
 
     for batch_idx, batch in enumerate(batches):
         try:
-            result = _analyze_batch(client, system_prompt, batch, model, max_tokens,
-                                    optional_defaults)
+            result, usage = _analyze_batch(client, system_prompt, batch, model,
+                                           max_tokens, optional_defaults)
             all_results.extend(result)
+            for key in total_usage:
+                total_usage[key] += getattr(usage, key, 0)
         except Exception as e:
             logger.error("Batch %d analysis failed after retries: %s", batch_idx, e)
             _save_failed_batch(batch, subject_slug)
+
+    logger.info(
+        "[%s] Token usage — input: %d, output: %d, cache_write: %d, cache_read: %d",
+        subject_slug, total_usage["input_tokens"], total_usage["output_tokens"],
+        total_usage["cache_creation_input_tokens"], total_usage["cache_read_input_tokens"],
+    )
+
+    # Attach usage to the results for logging upstream
+    if all_results:
+        all_results.append({"_token_usage": total_usage})
 
     return all_results
 
@@ -95,8 +110,11 @@ def _analyze_batch(
     model: str,
     max_tokens: int,
     optional_defaults: dict,
-) -> list[dict]:
-    """Send one batch of articles to Claude for analysis."""
+) -> tuple[list[dict], object]:
+    """Send one batch of articles to Claude for analysis.
+
+    Returns (parsed_results, usage) tuple.
+    """
     articles_payload = [
         {
             "title": a["title"],
@@ -112,13 +130,19 @@ def _analyze_batch(
         f"Analyze the following {len(articles_payload)} articles. "
         f"Return a JSON array with EXACTLY {len(articles_payload)} objects — "
         f"one KEEP or KILL decision per article. Do not skip any.\n\n"
-        f"```json\n{json.dumps(articles_payload, indent=2)}\n```"
+        f"```json\n{json.dumps(articles_payload, separators=(',', ':'))}\n```"
     )
 
     response = client.messages.create(
         model=model,
         max_tokens=max_tokens,
-        system=system_prompt,
+        system=[
+            {
+                "type": "text",
+                "text": system_prompt,
+                "cache_control": {"type": "ephemeral"},
+            }
+        ],
         messages=[{"role": "user", "content": user_message}],
     )
 
@@ -130,7 +154,7 @@ def _analyze_batch(
         )
 
     response_text = response.content[0].text
-    return _parse_response(response_text, articles, optional_defaults)
+    return _parse_response(response_text, articles, optional_defaults), response.usage
 
 
 def _parse_response(
@@ -245,6 +269,121 @@ def _validate_results(results: list, optional_defaults: dict) -> list[dict]:
 
     logger.info("Validated %d/%d results", len(validated), len(results))
     return validated
+
+
+def analyze_articles_batch(
+    articles: list[dict],
+    system_prompt: str,
+    model: str = "claude-sonnet-4-20250514",
+    max_tokens: int = 16384,
+    batch_size: int = 25,
+    extra_fields: list[dict] | None = None,
+    subject_slug: str = "",
+    poll_interval: int = 60,
+    max_wait: int = 7200,
+) -> list[dict]:
+    """Analyze articles using the Anthropic Batch API (50% cost reduction).
+
+    Same interface as analyze_articles but submits work as a batch job.
+    Polls for completion and returns results when ready.
+    """
+    if not articles:
+        logger.info("No articles to analyze")
+        return []
+
+    optional_defaults = dict(_BASE_OPTIONAL_DEFAULTS)
+    if extra_fields:
+        for field_spec in extra_fields:
+            optional_defaults[field_spec["field"]] = field_spec.get("default", "")
+
+    client = anthropic.Anthropic()
+    batches = [articles[i : i + batch_size] for i in range(0, len(articles), batch_size)]
+    logger.info("Submitting %d articles in %d batch(es) via Batch API",
+                len(articles), len(batches))
+
+    # Build batch requests
+    requests = []
+    for batch_idx, batch in enumerate(batches):
+        articles_payload = [
+            {
+                "title": a["title"],
+                "snippet": a["snippet"],
+                "url": a["url"],
+                "published": a["published"],
+                "source": a["source"],
+            }
+            for a in batch
+        ]
+        user_message = (
+            f"Analyze the following {len(articles_payload)} articles. "
+            f"Return a JSON array with EXACTLY {len(articles_payload)} objects — "
+            f"one KEEP or KILL decision per article. Do not skip any.\n\n"
+            f"```json\n{json.dumps(articles_payload, separators=(',', ':'))}\n```"
+        )
+        requests.append({
+            "custom_id": f"batch-{subject_slug}-{batch_idx}",
+            "params": {
+                "model": model,
+                "max_tokens": max_tokens,
+                "system": [
+                    {
+                        "type": "text",
+                        "text": system_prompt,
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ],
+                "messages": [{"role": "user", "content": user_message}],
+            },
+        })
+
+    # Submit batch
+    message_batch = client.messages.batches.create(requests=requests)
+    batch_id = message_batch.id
+    logger.info("Batch submitted: %s — polling for results", batch_id)
+
+    # Poll for completion
+    elapsed = 0
+    while elapsed < max_wait:
+        time.sleep(poll_interval)
+        elapsed += poll_interval
+        status = client.messages.batches.retrieve(batch_id)
+        logger.info("Batch %s status: %s (elapsed %ds)", batch_id,
+                     status.processing_status, elapsed)
+        if status.processing_status == "ended":
+            break
+    else:
+        logger.error("Batch %s did not complete within %ds", batch_id, max_wait)
+        return []
+
+    # Collect results
+    all_results = []
+    total_usage = {"input_tokens": 0, "output_tokens": 0,
+                   "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}
+
+    for result in client.messages.batches.results(batch_id):
+        if result.result.type != "succeeded":
+            logger.error("Batch request %s failed: %s",
+                         result.custom_id, result.result.type)
+            continue
+        msg = result.result.message
+        for key in total_usage:
+            total_usage[key] += getattr(msg.usage, key, 0)
+        response_text = msg.content[0].text
+        parsed = _parse_response(response_text, articles, optional_defaults)
+        all_results.extend(parsed)
+
+    logger.info(
+        "[%s] Batch API token usage — input: %d, output: %d, "
+        "cache_write: %d, cache_read: %d",
+        subject_slug, total_usage["input_tokens"], total_usage["output_tokens"],
+        total_usage["cache_creation_input_tokens"],
+        total_usage["cache_read_input_tokens"],
+    )
+
+    if all_results:
+        all_results.append({"_token_usage": total_usage})
+
+    return all_results
 
 
 def _save_failed_batch(articles: list[dict], subject_slug: str = "") -> None:
