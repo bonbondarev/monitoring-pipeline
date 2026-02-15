@@ -2,7 +2,7 @@
 # Subject-specific settings (keywords, target_states, etc.) live in subjects/<name>/subject.yaml
 
 # ---- API SETTINGS ----
-model: "claude-haiku-4-5-20250414"
+model: "claude-sonnet-4-20250514"
 max_retries: 3
 retry_delay_seconds: 5
 

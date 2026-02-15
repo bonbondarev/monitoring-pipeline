@@ -15,7 +15,7 @@ DEFAULT_TEMPLATE_PATH = PROJECT_ROOT / "templates" / "default_report.html"
 
 # Keys that exist in global config and can be overridden per-subject
 _GLOBAL_DEFAULTS = {
-    "model": "claude-haiku-4-5-20250414",
+    "model": "claude-sonnet-4-20250514",
     "max_retries": 3,
     "retry_delay_seconds": 5,
     "telegram_enabled": True,

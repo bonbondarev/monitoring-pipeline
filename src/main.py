@@ -150,7 +150,7 @@ def run_pipeline(
         return run_data
 
     # --- ANALYZE ---
-    model = config.get("model", "claude-haiku-4-5-20250414")
+    model = config.get("model", "claude-sonnet-4-20250514")
     api_mode = "Batch API (50% discount)" if use_batch_api else "standard API"
     logger.info("[%s] Analyzing %d articles with %s via %s",
                 subject_slug, len(articles), model, api_mode)

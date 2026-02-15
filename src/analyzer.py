@@ -35,7 +35,7 @@ _BASE_OPTIONAL_DEFAULTS = {
 def analyze_articles(
     articles: list[dict],
     system_prompt: str,
-    model: str = "claude-haiku-4-5-20250414",
+    model: str = "claude-sonnet-4-20250514",
     max_tokens: int = 16384,
     batch_size: int = 25,
     extra_fields: list[dict] | None = None,
@@ -274,7 +274,7 @@ def _validate_results(results: list, optional_defaults: dict) -> list[dict]:
 def analyze_articles_batch(
     articles: list[dict],
     system_prompt: str,
-    model: str = "claude-haiku-4-5-20250414",
+    model: str = "claude-sonnet-4-20250514",
     max_tokens: int = 16384,
     batch_size: int = 25,
     extra_fields: list[dict] | None = None,
