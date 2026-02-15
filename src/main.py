@@ -19,7 +19,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 from dotenv import load_dotenv  # noqa: E402
 
-from src.analyzer import analyze_articles  # noqa: E402
+from src.analyzer import analyze_articles, analyze_articles_batch  # noqa: E402
 from src.fetcher import fetch_all_articles  # noqa: E402
 from src.reporter import generate_report  # noqa: E402
 from src.subject_loader import list_subjects, load_subject  # noqa: E402
@@ -67,7 +67,8 @@ def _get_telegram_bot(
 
 
 def run_pipeline(
-    subject: dict, days_override: int | None = None, dry_run: bool = False
+    subject: dict, days_override: int | None = None, dry_run: bool = False,
+    use_batch_api: bool = False,
 ) -> dict:
     """Execute the full pipeline for a single subject. Returns run summary dict."""
     config = subject["config"]
@@ -149,19 +150,37 @@ def run_pipeline(
         return run_data
 
     # --- ANALYZE ---
-    model = config.get("model", "claude-sonnet-4-20250514")
-    logger.info("[%s] Analyzing %d articles with %s", subject_slug, len(articles), model)
+    model = config.get("model", "claude-haiku-4-5-20250414")
+    api_mode = "Batch API (50% discount)" if use_batch_api else "standard API"
+    logger.info("[%s] Analyzing %d articles with %s via %s",
+                subject_slug, len(articles), model, api_mode)
 
     custom_fields = subject.get("custom_fields", {})
     extra_fields = custom_fields.get("extra_fields", [])
 
-    analyzed = analyze_articles(
+    analyze_fn = analyze_articles_batch if use_batch_api else analyze_articles
+    analyzed = analyze_fn(
         articles,
         system_prompt=subject["system_prompt"],
         model=model,
         extra_fields=extra_fields,
         subject_slug=subject_slug,
     )
+
+    # Extract token usage metadata appended by analyzer
+    token_usage = None
+    if analyzed and isinstance(analyzed[-1], dict) and "_token_usage" in analyzed[-1]:
+        token_usage = analyzed.pop()["_token_usage"]
+        run_data["token_usage"] = token_usage
+        logger.info(
+            "[%s] API cost estimate: input=%d tokens, output=%d tokens, "
+            "cache_read=%d tokens",
+            subject_slug,
+            token_usage.get("input_tokens", 0),
+            token_usage.get("output_tokens", 0),
+            token_usage.get("cache_read_input_tokens", 0),
+        )
+
     run_data["articles_analyzed"] = len(analyzed)
 
     min_score = config.get("min_opportunity_score", 5)
@@ -303,6 +322,11 @@ def main():
         help="Send a test message to Telegram and exit",
     )
     parser.add_argument(
+        "--batch-api",
+        action="store_true",
+        help="Use Anthropic Batch API for 50%% cost reduction (results may take minutes)",
+    )
+    parser.add_argument(
         "--verbose",
         action="store_true",
         help="Enable DEBUG logging",
@@ -348,7 +372,8 @@ def main():
             try:
                 subject = load_subject(slug)
                 run_data = run_pipeline(
-                    subject, days_override=args.days, dry_run=args.dry_run
+                    subject, days_override=args.days, dry_run=args.dry_run,
+                    use_batch_api=args.batch_api,
                 )
                 log_path = save_run_log(run_data, subject_slug=slug)
                 logger.info("[%s] Run log saved to %s", slug, log_path)
@@ -384,7 +409,8 @@ def main():
     try:
         subject = load_subject(args.subject)
         run_data = run_pipeline(
-            subject, days_override=args.days, dry_run=args.dry_run
+            subject, days_override=args.days, dry_run=args.dry_run,
+            use_batch_api=args.batch_api,
         )
         log_path = save_run_log(run_data, subject_slug=args.subject)
         logger.info("Run log saved to %s", log_path)
