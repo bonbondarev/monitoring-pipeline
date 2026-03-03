@@ -1,17 +1,17 @@
 # Monitoring Pipeline
 
-Multi-subject news monitoring pipeline that fetches articles from Google News RSS, filters them through the Anthropic API using subject-specific intelligence prompts, generates self-contained HTML reports, and delivers daily summaries via Telegram.
+Stage 1 of the LotPotential land acquisition pipeline. Fetches articles from Google News RSS, filters them through the Claude API using subject-specific intelligence prompts, generates self-contained HTML reports, and delivers daily summaries via Telegram.
 
-Built for LotPotential LLC to find land acquisition opportunities before market prices them in.
+Kept opportunities are exported as JSON for the [deal-research](../deal-research/) Stage 2 pipeline.
 
 ## Subjects
 
 Each subject is a self-contained folder under `subjects/` with its own keywords, prompt, and field mappings:
 
-| Subject | Description |
-|---------|-------------|
-| `rezoning` | Government-initiated zoning changes (upzoning, TOD zones, corridor rezonings) |
-| `infrastructure` | Government infrastructure investment (water/sewer extensions, roads, utility districts) |
+| Subject | Description | Target States |
+|---------|-------------|---------------|
+| `rezoning` | Government-initiated zoning changes (upzoning, TOD zones, corridor rezonings) | All 50 |
+| `infrastructure` | Government infrastructure investment (water/sewer extensions, roads, utility districts) | All 50 |
 
 To add a new subject, copy `subjects/_template/` — zero Python code changes required.
 
@@ -20,7 +20,7 @@ To add a new subject, copy `subjects/_template/` — zero Python code changes re
 ```bash
 # Clone and set up
 git clone <repo-url> && cd monitoring-pipeline
-python3.12 -m venv venv
+python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
@@ -82,6 +82,9 @@ python src/main.py --subject rezoning --dry-run
 # Override lookback period
 python src/main.py --subject rezoning --days 7
 
+# Use Batch API (50% cheaper, async processing)
+python src/main.py --subject rezoning --batch-api
+
 # Run all subjects in dry-run mode
 python src/main.py --all-subjects --dry-run
 
@@ -120,8 +123,8 @@ Google News RSS
   fetcher.py ──── Fetches RSS per keyword, deduplicates, date-filters
       |
       v
-  analyzer.py ─── Sends articles to Claude API with subject's prompt.md
-      |
+  analyzer.py ─── Sends batches of 25 articles to Claude API with subject's prompt.md
+      |            Uses prompt caching + token tracking; optional --batch-api
       v
   reporter.py ─── Renders Jinja2 HTML template with subject metadata
       |
@@ -132,8 +135,16 @@ telegram_bot.py ── Sends summary + HTML attachment via Telegram Bot API
 Pipeline orchestrated by `src/main.py` with subject loaded by `src/subject_loader.py`.
 
 Reports: `reports/<subject>/YYYY-MM-DD.html`
+JSON opportunities (Stage 2 input): `reports/<subject>/YYYY-MM-DD.json`
 Run logs: `logs/<subject>/YYYY-MM-DD_HHMMSS.json`
 Failed batches: `logs/failed/<subject>/`
+
+## API Cost Optimizations
+
+- **Prompt caching**: System prompt uses `cache_control: ephemeral`. Batch 1 creates the cache, batches 2+ read from cache at 90% discount.
+- **Token usage tracking**: Every run logs input, output, cache_creation, and cache_read token counts to the run log JSON.
+- **Batch API**: `--batch-api` flag submits all batches as one async job via Messages Batch API for 50% cost reduction. Best for cron jobs where latency doesn't matter.
+- **Readable JSON**: Article payloads use `indent=2` formatting. Do NOT switch to compact JSON — it degrades filtering quality.
 
 ## Project Structure
 
@@ -143,7 +154,7 @@ monitoring-pipeline/
 │   ├── main.py              # Pipeline orchestrator (--subject flag)
 │   ├── subject_loader.py    # Loads subject config, prompt, template
 │   ├── fetcher.py           # Google News RSS fetching
-│   ├── analyzer.py          # Claude API filtering (subject-agnostic)
+│   ├── analyzer.py          # Claude API filtering + caching + tracking
 │   ├── reporter.py          # HTML report generation
 │   ├── telegram_bot.py      # Telegram delivery
 │   ├── url_resolver.py      # Google News URL resolution
@@ -162,26 +173,25 @@ monitoring-pipeline/
 │   └── default_report.html  # Dynamic Jinja2 template (all subjects)
 ├── config.yaml              # Global pipeline settings
 ├── .env                     # API keys (not committed)
-├── reports/<subject>/       # Generated HTML reports
-├── logs/<subject>/          # Run logs (JSON)
+├── reports/<subject>/       # Generated HTML reports + JSON opportunities
+├── logs/<subject>/          # Run logs (JSON with token usage)
 └── logs/failed/<subject>/   # Raw articles from failed API calls
 ```
 
 ## Scheduling
 
-Run `server-setup.sh` for automated VPS setup with per-subject cron jobs:
+Cron jobs run daily, staggered by 30 minutes to avoid Google News rate limiting:
 
-```bash
-chmod +x server-setup.sh && ./server-setup.sh
-```
+| Time (Eastern) | Subject |
+|----------------|---------|
+| 8:00 AM | infrastructure |
+| 8:30 AM | rezoning |
 
-This installs one cron job per subject, staggered by 30 minutes:
-- `rezoning`: 8:00 AM Eastern
-- `infrastructure`: 8:30 AM Eastern
+Run `server-setup.sh` for automated VPS setup with cron jobs.
 
 ## Troubleshooting
 
-**No articles fetched**: Google News may rate-limit. Try `--days 3` for a wider window, or reduce keywords in subject.yaml.
+**No articles fetched**: Google News may rate-limit. Try `--days 3` for a wider window, or reduce keywords in subject.yaml. Running subjects back-to-back manually can trigger 503 errors — the 30-minute cron gap prevents this.
 
 **Claude API errors**: Check `ANTHROPIC_API_KEY`. Failed batches are saved to `logs/failed/<subject>/`.
 
