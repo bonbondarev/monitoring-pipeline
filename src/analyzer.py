@@ -152,7 +152,7 @@ def _build_user_message(articles: list[dict]) -> str:
         f"Analyze the following {len(articles_payload)} articles. "
         f"Return a JSON array with EXACTLY {len(articles_payload)} objects — "
         f"one KEEP or KILL decision per article. Do not skip any.\n\n"
-        f"```json\n{json.dumps(articles_payload, separators=(',', ':'))}\n```"
+        f"```json\n{json.dumps(articles_payload, indent=2)}\n```"
     )
 
 

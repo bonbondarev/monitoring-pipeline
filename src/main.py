@@ -67,9 +67,7 @@ def _get_telegram_bot(
 
 
 def run_pipeline(
-    subject: dict,
-    days_override: int | None = None,
-    dry_run: bool = False,
+    subject: dict, days_override: int | None = None, dry_run: bool = False,
     use_batch_api: bool = False,
 ) -> dict:
     """Execute the full pipeline for a single subject. Returns run summary dict."""
@@ -310,7 +308,7 @@ def main():
     parser.add_argument(
         "--batch-api",
         action="store_true",
-        help="Use Messages Batch API (50%% cheaper, async — for cron jobs)",
+        help="Use Messages Batch API (50%% cheaper, async processing)",
     )
     parser.add_argument(
         "--verbose",
