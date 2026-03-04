@@ -139,16 +139,19 @@ def analyze_articles(
 
 def _build_user_message(articles: list[dict]) -> str:
     """Build the user message for a batch of articles."""
-    articles_payload = [
-        {
+    articles_payload = []
+    for a in articles:
+        entry = {
             "title": a["title"],
             "snippet": a["snippet"],
             "url": a["url"],
             "published": a["published"],
             "source": a["source"],
         }
-        for a in articles
-    ]
+        # Include full_text if enrichment provided it
+        if a.get("full_text"):
+            entry["full_text"] = a["full_text"]
+        articles_payload.append(entry)
     return (
         f"Analyze the following {len(articles_payload)} articles. "
         f"Return a JSON array with EXACTLY {len(articles_payload)} objects — "

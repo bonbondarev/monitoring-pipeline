@@ -215,6 +215,8 @@ For KILL decisions, you may set all sub-scores to 0 and score to 0.
 
 **Next steps guidance:** The most actionable next step is always: identify parcels that will gain utility access or road access they currently lack. Specify the county assessor/GIS portal to check. Mention utility service area maps. If a meeting date is mentioned, include it.
 
+**Full text enrichment:** Some articles include a `full_text` field containing the fetched article body. If `full_text` is provided, use it as the primary text for your analysis. Fall back to `snippet` if `full_text` is null or absent.
+
 Return ONLY the JSON array. No other text.
 If no articles qualify, return ALL with decision "KILL" — an empty day is better than a noisy day.
 Return EXACTLY ONE JSON object for EVERY article in the input.

@@ -20,6 +20,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 from dotenv import load_dotenv  # noqa: E402
 
 from src.analyzer import analyze_articles  # noqa: E402
+from src.enrichment import enrich_articles, get_enrichment_stats  # noqa: E402
 from src.fetcher import fetch_all_articles  # noqa: E402
 from src.reporter import generate_report  # noqa: E402
 from src.subject_loader import list_subjects, load_subject  # noqa: E402
@@ -68,7 +69,8 @@ def _get_telegram_bot(
 
 def run_pipeline(
     subject: dict, days_override: int | None = None, dry_run: bool = False,
-    use_batch_api: bool = False,
+    use_batch_api: bool = False, skip_enrichment: bool = False,
+    limit: int | None = None,
 ) -> dict:
     """Execute the full pipeline for a single subject. Returns run summary dict."""
     config = subject["config"]
@@ -110,6 +112,12 @@ def run_pipeline(
     )
     run_data["articles_fetched"] = len(articles)
 
+    # Apply --limit if set (process only first N articles)
+    if limit and limit > 0 and len(articles) > limit:
+        logger.info("[%s] Limiting to first %d articles (of %d)",
+                     subject_slug, limit, len(articles))
+        articles = articles[:limit]
+
     if not articles:
         logger.info("[%s] No articles fetched from any keyword", subject_slug)
         run_data["articles_kept"] = 0
@@ -131,6 +139,18 @@ def run_pipeline(
 
         run_data["end_time"] = datetime.now().isoformat()
         return run_data
+
+    # --- ENRICHMENT ---
+    if not skip_enrichment:
+        logger.info("[%s] Enriching %d articles with full text", subject_slug, len(articles))
+        try:
+            enrich_articles(articles)
+            run_data["enrichment"] = get_enrichment_stats(articles)
+        except Exception as e:
+            logger.error("[%s] Enrichment failed, continuing without: %s", subject_slug, e)
+            run_data["errors"].append(f"Enrichment: {e}")
+    else:
+        logger.info("[%s] Skipping enrichment (--skip-enrichment)", subject_slug)
 
     # --- DRY RUN ---
     if dry_run:
@@ -326,6 +346,17 @@ def main():
         help="Use Messages Batch API (50%% cheaper, async processing)",
     )
     parser.add_argument(
+        "--skip-enrichment",
+        action="store_true",
+        help="Skip full-text article fetching (faster runs)",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Only process the first N articles from RSS (for testing)",
+    )
+    parser.add_argument(
         "--verbose",
         action="store_true",
         help="Enable DEBUG logging",
@@ -373,6 +404,8 @@ def main():
                 run_data = run_pipeline(
                     subject, days_override=args.days, dry_run=args.dry_run,
                     use_batch_api=args.batch_api,
+                    skip_enrichment=args.skip_enrichment,
+                    limit=args.limit,
                 )
                 log_path = save_run_log(run_data, subject_slug=slug)
                 logger.info("[%s] Run log saved to %s", slug, log_path)
@@ -410,6 +443,8 @@ def main():
         run_data = run_pipeline(
             subject, days_override=args.days, dry_run=args.dry_run,
             use_batch_api=args.batch_api,
+            skip_enrichment=args.skip_enrichment,
+            limit=args.limit,
         )
         log_path = save_run_log(run_data, subject_slug=args.subject)
         logger.info("Run log saved to %s", log_path)
