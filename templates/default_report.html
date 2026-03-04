@@ -618,17 +618,48 @@
         </div>
         {% endif %}
 
+        <!-- ── Noise Filtered (collapsible) ── -->
+        {% set noise_articles = killed_articles|selectattr("noise_flag", "defined")|selectattr("noise_flag", "ne", "NONE")|list %}
+        {% set normal_killed = killed_articles|rejectattr("noise_flag", "defined")|list + killed_articles|selectattr("noise_flag", "defined")|selectattr("noise_flag", "eq", "NONE")|list %}
+        {% if noise_articles %}
+        <div class="filtered-section">
+            <button class="filtered-toggle" onclick="document.getElementById('noise-body').classList.toggle('open'); this.querySelector('.toggle-icon').classList.toggle('rotated');">
+                <span class="toggle-icon">&#x25B6;</span>
+                <h2>Noise Filtered</h2>
+                <span class="section-count">{{ noise_articles|length }}</span>
+                <span class="section-line"></span>
+            </button>
+            <div id="noise-body" class="filtered-body">
+                {% for article in noise_articles[:20] %}
+                <div class="filtered-item">
+                    <span class="tag" style="background:#ffebe9;color:#cf222e;flex-shrink:0;">{{ article.noise_flag }}</span>
+                    <span class="kill-headline">{{ article.headline }}</span>
+                    {% if article.reasoning %}
+                    <span class="kill-reason">— {{ article.reasoning }}</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% if noise_articles|length > 20 %}
+                <div class="filtered-more">
+                    ... and {{ noise_articles|length - 20 }} more
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
         <!-- ── Filtered Articles (collapsible) ── -->
-        {% if killed_articles %}
+        {% set display_killed = normal_killed if noise_articles else killed_articles %}
+        {% if display_killed %}
         <div class="filtered-section">
             <button class="filtered-toggle" onclick="document.getElementById('filtered-body').classList.toggle('open'); this.querySelector('.toggle-icon').classList.toggle('rotated');">
                 <span class="toggle-icon">&#x25B6;</span>
                 <h2>Filtered Out</h2>
-                <span class="section-count">{{ killed_count }}</span>
+                <span class="section-count">{{ display_killed|length }}</span>
                 <span class="section-line"></span>
             </button>
             <div id="filtered-body" class="filtered-body">
-                {% for article in killed_articles[:20] %}
+                {% for article in display_killed[:20] %}
                 <div class="filtered-item">
                     <span class="kill-headline">{{ article.headline }}</span>
                     {% if article.reasoning %}
@@ -636,9 +667,9 @@
                     {% endif %}
                 </div>
                 {% endfor %}
-                {% if killed_articles|length > 20 %}
+                {% if display_killed|length > 20 %}
                 <div class="filtered-more">
-                    ... and {{ killed_articles|length - 20 }} more
+                    ... and {{ display_killed|length - 20 }} more
                 </div>
                 {% endif %}
             </div>

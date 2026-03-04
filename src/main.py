@@ -179,6 +179,17 @@ def run_pipeline(
     run_data["articles_kept"] = len(kept)
     run_data["articles_killed"] = len(killed)
 
+    # Noise distribution logging
+    noise_counts = {}
+    for a in analyzed:
+        flag = a.get("noise_flag", "NONE")
+        noise_counts[flag] = noise_counts.get(flag, 0) + 1
+    run_data["noise_distribution"] = noise_counts
+    noise_killed = {k: v for k, v in noise_counts.items() if k != "NONE"}
+    if noise_killed:
+        logger.info("[%s] Noise filtered: %s", subject_slug,
+                     ", ".join(f"{k}={v}" for k, v in noise_killed.items()))
+
     logger.info("[%s] Analysis complete: %d kept, %d killed",
                 subject_slug, len(kept), len(killed))
 

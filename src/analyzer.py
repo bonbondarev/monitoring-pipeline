@@ -19,6 +19,7 @@ _REQUIRED_FIELDS = {"decision", "headline"}
 # Default values for optional fields shared across all subjects
 _BASE_OPTIONAL_DEFAULTS = {
     "classification": "",
+    "noise_flag": "NONE",
     "score": 0,
     "city": "",
     "state": "",

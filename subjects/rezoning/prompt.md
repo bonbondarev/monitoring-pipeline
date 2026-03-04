@@ -19,6 +19,20 @@ We buy land BEFORE upzoning is priced in. The ideal signal is:
 - The change affects an AREA (corridor, district, overlay zone, station area) — not just one developer's parcel
 - The change is early enough that surrounding land prices haven't adjusted
 
+## NOISE DETECTION — FIRST PASS
+
+Before making the KEEP/KILL decision, classify every article with a `noise_flag`. If the flag is anything other than `NONE`, auto-KILL the article with the noise flag as the reason.
+
+| Flag | Description | Action |
+|---|---|---|
+| `PR_FLUFF` | Press release or puff piece. No concrete government action, just a vision/announcement. Phrases like "is expected to," "the city envisions," "plans are in early stages." | Auto-KILL unless it references a specific vote, approval, or filing. |
+| `STALE` | Rehash of a story more than 6 months old with no new development. The article references a date or event that is clearly old. | Auto-KILL. |
+| `ADVOCACY` | Opinion piece, editorial, or advocacy for/against a project. Not reporting on actual government action. | Auto-KILL. |
+| `CONSTRUCTION_UPDATE` | Project already under construction or complete. Too late to buy land ahead of it. Phrases like "construction is underway," "project is 60% complete," "ribbon cutting." | Auto-KILL. The opportunity window has closed. |
+| `NONE` | Clean article reporting on actual, current government-initiated change. | Proceed to KEEP/KILL evaluation normally. |
+
+Include `noise_flag` in your JSON output for EVERY article (both kept and killed).
+
 ## KEEP RULES
 
 KEEP if ALL of these are true:
@@ -166,6 +180,7 @@ Return a valid JSON array. For each article:
 
 {
   "decision": "KEEP" or "KILL",
+  "noise_flag": "NONE | PR_FLUFF | STALE | ADVOCACY | CONSTRUCTION_UPDATE",
   "headline": "original headline",
   "classification": "one of the classifications above",
   "profit_potential": 1-10,

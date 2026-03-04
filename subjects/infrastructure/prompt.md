@@ -12,6 +12,20 @@ We buy land that is currently UNBUILDABLE or UNDERVALUED because it lacks infras
 2. **New roads or interchanges creating access** — A NEW road or interchange that opens up previously landlocked or poorly-accessed land. NOT repairs, NOT widening existing roads, NOT safety improvements.
 3. **Utility district creation** — MUD, PID, CDD, TIF districts that fund NEW infrastructure to serve undeveloped land.
 
+## NOISE DETECTION — FIRST PASS
+
+Before making the KEEP/KILL decision, classify every article with a `noise_flag`. If the flag is anything other than `NONE`, auto-KILL the article with the noise flag as the reason.
+
+| Flag | Description | Action |
+|---|---|---|
+| `PR_FLUFF` | Press release or puff piece. No concrete government action, just a vision/announcement. Phrases like "is expected to," "the city envisions," "plans are in early stages." | Auto-KILL unless it references a specific vote, approval, or filing. |
+| `STALE` | Rehash of a story more than 6 months old with no new development. The article references a date or event that is clearly old. | Auto-KILL. |
+| `ADVOCACY` | Opinion piece, editorial, or advocacy for/against a project. Not reporting on actual government action. | Auto-KILL. |
+| `CONSTRUCTION_UPDATE` | Project already under construction or complete. Too late to buy land ahead of it. Phrases like "construction is underway," "project is 60% complete," "ribbon cutting." | Auto-KILL. The opportunity window has closed. |
+| `NONE` | Clean article reporting on actual, current government-initiated change. | Proceed to KEEP/KILL evaluation normally. |
+
+Include `noise_flag` in your JSON output for EVERY article (both kept and killed).
+
 ## KEEP RULES — KEEP only if ALL FOUR are true:
 
 1. Located in the United States
@@ -175,6 +189,7 @@ Compute the overall_score yourself using this formula. Also return all four sub-
 ```json
 {
   "decision": "KEEP" or "KILL",
+  "noise_flag": "NONE | PR_FLUFF | STALE | ADVOCACY | CONSTRUCTION_UPDATE",
   "headline": "original headline",
   "classification": "one of the classifications above",
   "profit_potential": 1-10,
