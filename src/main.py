@@ -20,6 +20,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 from dotenv import load_dotenv  # noqa: E402
 
 from src.analyzer import analyze_articles  # noqa: E402
+from src.dedup import deduplicate_articles, get_dedup_stats  # noqa: E402
 from src.enrichment import enrich_articles, get_enrichment_stats  # noqa: E402
 from src.fetcher import fetch_all_articles  # noqa: E402
 from src.reporter import generate_report  # noqa: E402
@@ -70,7 +71,8 @@ def _get_telegram_bot(
 def run_pipeline(
     subject: dict, days_override: int | None = None, dry_run: bool = False,
     use_batch_api: bool = False, skip_enrichment: bool = False,
-    limit: int | None = None,
+    limit: int | None = None, skip_dedup: bool = False,
+    dedup_threshold: float = 0.80,
 ) -> dict:
     """Execute the full pipeline for a single subject. Returns run summary dict."""
     config = subject["config"]
@@ -151,6 +153,20 @@ def run_pipeline(
             run_data["errors"].append(f"Enrichment: {e}")
     else:
         logger.info("[%s] Skipping enrichment (--skip-enrichment)", subject_slug)
+
+    # --- DEDUPLICATION ---
+    if not skip_dedup:
+        pre_dedup_count = len(articles)
+        logger.info("[%s] Deduplicating %d articles (threshold=%.2f)",
+                     subject_slug, len(articles), dedup_threshold)
+        try:
+            articles = deduplicate_articles(articles, threshold=dedup_threshold)
+            run_data["dedup"] = get_dedup_stats(pre_dedup_count, articles)
+        except Exception as e:
+            logger.error("[%s] Dedup failed, continuing without: %s", subject_slug, e)
+            run_data["errors"].append(f"Dedup: {e}")
+    else:
+        logger.info("[%s] Skipping dedup (--skip-dedup)", subject_slug)
 
     # --- DRY RUN ---
     if dry_run:
@@ -357,6 +373,17 @@ def main():
         help="Only process the first N articles from RSS (for testing)",
     )
     parser.add_argument(
+        "--skip-dedup",
+        action="store_true",
+        help="Skip embedding-based deduplication",
+    )
+    parser.add_argument(
+        "--dedup-threshold",
+        type=float,
+        default=0.80,
+        help="Cosine similarity threshold for dedup clustering (default: 0.80)",
+    )
+    parser.add_argument(
         "--verbose",
         action="store_true",
         help="Enable DEBUG logging",
@@ -406,6 +433,8 @@ def main():
                     use_batch_api=args.batch_api,
                     skip_enrichment=args.skip_enrichment,
                     limit=args.limit,
+                    skip_dedup=args.skip_dedup,
+                    dedup_threshold=args.dedup_threshold,
                 )
                 log_path = save_run_log(run_data, subject_slug=slug)
                 logger.info("[%s] Run log saved to %s", slug, log_path)
@@ -445,6 +474,8 @@ def main():
             use_batch_api=args.batch_api,
             skip_enrichment=args.skip_enrichment,
             limit=args.limit,
+            skip_dedup=args.skip_dedup,
+            dedup_threshold=args.dedup_threshold,
         )
         log_path = save_run_log(run_data, subject_slug=args.subject)
         logger.info("Run log saved to %s", log_path)

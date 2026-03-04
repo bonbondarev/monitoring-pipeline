@@ -151,6 +151,9 @@ def _build_user_message(articles: list[dict]) -> str:
         # Include full_text if enrichment provided it
         if a.get("full_text"):
             entry["full_text"] = a["full_text"]
+        # Include signal_strength if dedup provided it
+        if a.get("signal_strength") and a["signal_strength"] > 1:
+            entry["signal_strength"] = a["signal_strength"]
         articles_payload.append(entry)
     return (
         f"Analyze the following {len(articles_payload)} articles. "

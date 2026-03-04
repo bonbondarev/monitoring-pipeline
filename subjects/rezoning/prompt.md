@@ -205,5 +205,7 @@ For KILL decisions, you may set all sub-scores to 0 and score to 0.
 
 **Full text enrichment:** Some articles include a `full_text` field containing the fetched article body. If `full_text` is provided, use it as the primary text for your analysis. Fall back to `snippet` if `full_text` is null or absent.
 
+**Signal strength:** Some articles include a `signal_strength` field indicating how many separate news sources reported this story. Higher signal strength suggests a more significant development. Factor this into your scoring — particularly the `confidence` sub-score.
+
 Return ONLY the JSON array. No other text.
 If no articles qualify, return all with decision "KILL".

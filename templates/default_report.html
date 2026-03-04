@@ -258,6 +258,20 @@
             color: #24292f;
         }
 
+        /* Signal strength badge */
+        .signal-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            font-weight: 600;
+            padding: 1px 7px;
+            border-radius: 8px;
+            background: #ddf4ff;
+            color: #0550ae;
+        }
+
         /* Change block (zoning / infrastructure) */
         .change-block {
             display: flex;
@@ -509,6 +523,9 @@
                         </a>
                     </div>
                     <div class="card-source">
+                        {% if article.signal_strength and article.signal_strength > 1 %}
+                        <span class="signal-badge">&#x1F4E1; x{{ article.signal_strength }}</span>
+                        {% endif %}
                         {% if article.city or article.state %}
                             {{ article.city }}{% if article.city and article.state %}, {% endif %}{{ article.state }}
                         {% endif %}
