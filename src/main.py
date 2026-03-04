@@ -20,6 +20,11 @@ if str(_PROJECT_ROOT) not in sys.path:
 from dotenv import load_dotenv  # noqa: E402
 
 from src.analyzer import analyze_articles  # noqa: E402
+from src.cross_signal import (  # noqa: E402
+    detect_cross_signals,
+    load_latest_opportunities,
+    save_cross_signals,
+)
 from src.dedup import deduplicate_articles, get_dedup_stats  # noqa: E402
 from src.enrichment import enrich_articles, get_enrichment_stats  # noqa: E402
 from src.fetcher import fetch_all_articles  # noqa: E402
@@ -308,6 +313,91 @@ def run_pipeline(
     return run_data
 
 
+def run_cross_signal(date: str | None = None, dry_run: bool = False) -> None:
+    """Run cross-subject signal detection and generate report."""
+    from jinja2 import Environment, FileSystemLoader
+
+    if not date:
+        date = datetime.now().strftime("%Y-%m-%d")
+
+    logger.info("Running cross-signal detection for %s", date)
+
+    infra_opps = load_latest_opportunities("infrastructure", date)
+    rezone_opps = load_latest_opportunities("rezoning", date)
+
+    if not infra_opps:
+        logger.info("No infrastructure opportunities for %s — skipping cross-signal", date)
+        print(f"No infrastructure opportunities for {date}")
+        return
+    if not rezone_opps:
+        logger.info("No rezoning opportunities for %s — skipping cross-signal", date)
+        print(f"No rezoning opportunities for {date}")
+        return
+
+    cross_signals = detect_cross_signals(infra_opps, rezone_opps)
+
+    if dry_run:
+        print(f"\nCross-signal detection ({date}):")
+        print(f"  Infrastructure opportunities: {len(infra_opps)}")
+        print(f"  Rezoning opportunities: {len(rezone_opps)}")
+        print(f"  Cross-signals found: {len(cross_signals)}")
+        for cs in cross_signals:
+            print(f"\n  Score {cs['cross_signal_score']}: {cs['city']}, {cs['state']}")
+            print(f"    Infra: {cs['infrastructure']['headline'][:70]}")
+            print(f"    Rezone: {cs['rezoning']['headline'][:70]}")
+        return
+
+    # Save cross-signals JSON
+    if cross_signals:
+        json_path = save_cross_signals(cross_signals, date)
+        print(f"Cross-signals JSON: {json_path}")
+
+    # Generate HTML report
+    template_path = PROJECT_ROOT / "templates" / "cross_signal_report.html"
+    env = Environment(
+        loader=FileSystemLoader(str(template_path.parent)), autoescape=True
+    )
+    template = env.get_template(template_path.name)
+
+    html = template.render(
+        date=date,
+        cross_signals=cross_signals,
+    )
+
+    report_dir = PROJECT_ROOT / "reports" / "cross-signals"
+    report_dir.mkdir(parents=True, exist_ok=True)
+    report_path = report_dir / f"{date}.html"
+    report_path.write_text(html, encoding="utf-8")
+    logger.info("Cross-signal report: %s", report_path)
+    print(f"Cross-signal report: {report_path}")
+
+    # Send via Telegram
+    bot = _get_telegram_bot("Cross-Signal", "")
+    if bot:
+        try:
+            stats = {
+                "date": date,
+                "total_scanned": len(infra_opps) + len(rezone_opps),
+                "kept_count": len(cross_signals),
+                "killed_count": 0,
+            }
+            if cross_signals:
+                bot.send_summary(
+                    [{"headline": cs["cross_signal_narrative"][:100],
+                      "score": cs["cross_signal_score"],
+                      "city": cs["city"], "state": cs["state"]}
+                     for cs in cross_signals],
+                    stats,
+                )
+                bot.send_report(report_path)
+            else:
+                bot.send_no_results(stats)
+        except Exception as e:
+            logger.error("Cross-signal Telegram delivery failed: %s", e)
+
+    print(f"\nCross-signal complete: {len(cross_signals)} signals found")
+
+
 def test_telegram() -> None:
     """Send a test message to Telegram and exit."""
     bot = _get_telegram_bot()
@@ -384,6 +474,17 @@ def main():
         help="Cosine similarity threshold for dedup clustering (default: 0.80)",
     )
     parser.add_argument(
+        "--cross-signal",
+        action="store_true",
+        help="Run cross-subject signal detection (infrastructure + rezoning overlap)",
+    )
+    parser.add_argument(
+        "--date",
+        type=str,
+        default=None,
+        help="Date for cross-signal detection (YYYY-MM-DD, default: today)",
+    )
+    parser.add_argument(
         "--verbose",
         action="store_true",
         help="Enable DEBUG logging",
@@ -407,6 +508,11 @@ def main():
     # --- Test Telegram ---
     if args.test_telegram:
         test_telegram()
+        return
+
+    # --- Cross-signal detection ---
+    if args.cross_signal:
+        run_cross_signal(date=args.date, dry_run=args.dry_run)
         return
 
     # --- Validate args ---

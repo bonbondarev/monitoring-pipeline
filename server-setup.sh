@@ -84,6 +84,14 @@ ${CRON_CMD}"
     echo "  Cron for ${subject}: ${CRON_HOUR}:$(printf '%02d' $CRON_MINUTE) AM Eastern"
 done
 
+# Add cross-signal detection cron at 8:45 AM Eastern (after both subjects)
+CROSS_SIGNAL_CMD="45 8 * * * cd ${PROJECT_DIR} && ${PROJECT_DIR}/venv/bin/python src/main.py --cross-signal >> ${PROJECT_DIR}/logs/cross-signal-cron.log 2>&1"
+NEW_CRON="${NEW_CRON}
+# monitoring-pipeline: cross-signal detection 8:45 AM Eastern
+${CROSS_SIGNAL_CMD}"
+
+echo "  Cron for cross-signal: 8:45 AM Eastern"
+
 echo "${NEW_CRON}" | crontab -
 
 echo ""
