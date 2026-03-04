@@ -132,3 +132,11 @@ custom_fields:
       default: ""
     - field: "planned_infrastructure"
       default: ""
+    - field: "profit_potential"
+      default: 0
+    - field: "timing"
+      default: 0
+    - field: "actionability"
+      default: 0
+    - field: "confidence"
+      default: 0

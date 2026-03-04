@@ -231,6 +231,33 @@
         .tag-status { background: #fbefff; color: #8250df; }
         .tag-location { background: #dafbe1; color: #116329; }
 
+        /* Sub-scores row */
+        .sub-scores {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 10px 0 4px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .sub-score {
+            padding: 2px 6px;
+            border-radius: 4px;
+            letter-spacing: 0.2px;
+        }
+        .sub-score-green { background: #dafbe1; color: #116329; }
+        .sub-score-yellow { background: #fff8c5; color: #7d4e00; }
+        .sub-score-red { background: #ffebe9; color: #cf222e; }
+        .sub-score-arrow {
+            color: #656d76;
+            font-weight: 600;
+        }
+        .sub-score-composite {
+            font-weight: 700;
+            color: #24292f;
+        }
+
         /* Change block (zoning / infrastructure) */
         .change-block {
             display: flex;
@@ -505,6 +532,22 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Sub-scores -->
+            {% if article.profit_potential or article.timing or article.actionability or article.confidence %}
+            <div class="sub-scores">
+                {% set pp = article.profit_potential|default(0, true)|int %}
+                {% set ti = article.timing|default(0, true)|int %}
+                {% set ac = article.actionability|default(0, true)|int %}
+                {% set co = article.confidence|default(0, true)|int %}
+                <span class="sub-score {% if pp >= 7 %}sub-score-green{% elif pp >= 4 %}sub-score-yellow{% else %}sub-score-red{% endif %}">P:{{ pp }}</span>
+                <span class="sub-score {% if ti >= 7 %}sub-score-green{% elif ti >= 4 %}sub-score-yellow{% else %}sub-score-red{% endif %}">T:{{ ti }}</span>
+                <span class="sub-score {% if ac >= 7 %}sub-score-green{% elif ac >= 4 %}sub-score-yellow{% else %}sub-score-red{% endif %}">A:{{ ac }}</span>
+                <span class="sub-score {% if co >= 7 %}sub-score-green{% elif co >= 4 %}sub-score-yellow{% else %}sub-score-red{% endif %}">C:{{ co }}</span>
+                <span class="sub-score-arrow">&rarr;</span>
+                <span class="sub-score-composite">{{ article.score }}</span>
+            </div>
+            {% endif %}
 
             <!-- Dynamic change block (zoning before→after, infrastructure current→planned, etc.) -->
             {% if change_block %}

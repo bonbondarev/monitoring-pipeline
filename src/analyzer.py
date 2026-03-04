@@ -378,11 +378,32 @@ def _validate_results(results: list, optional_defaults: dict) -> list[dict]:
         # Normalize decision
         r["decision"] = str(r["decision"]).upper()
 
-        # Clamp score to 0-10
-        try:
-            r["score"] = max(0, min(10, int(r["score"])))
-        except (ValueError, TypeError):
-            r["score"] = 0
+        # Extract and clamp sub-scores, compute composite as safety net
+        sub_score_fields = ("profit_potential", "timing", "actionability", "confidence")
+        weights = (0.35, 0.30, 0.20, 0.15)
+        has_sub_scores = any(r.get(f) for f in sub_score_fields)
+
+        if has_sub_scores:
+            for field in sub_score_fields:
+                try:
+                    r[field] = max(0, min(10, int(r[field])))
+                except (ValueError, TypeError):
+                    r[field] = 0
+            # Recompute composite from sub-scores (safety net for Claude's math)
+            composite = round(
+                r["profit_potential"] * 0.35
+                + r["timing"] * 0.30
+                + r["actionability"] * 0.20
+                + r["confidence"] * 0.15,
+                1,
+            )
+            r["score"] = composite
+        else:
+            # Fallback: clamp whatever score was returned
+            try:
+                r["score"] = max(0, min(10, int(r["score"])))
+            except (ValueError, TypeError):
+                r["score"] = 0
 
         # Ensure source_url is populated from original article if empty
         if not r.get("source_url"):

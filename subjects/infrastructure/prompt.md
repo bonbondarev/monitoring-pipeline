@@ -118,19 +118,47 @@ Electrical grid expansion does not directly create land development opportunitie
 - "Governor announces $9M for water/sewer projects statewide" ✗ (no specific location)
 - "90-lot subdivision approved" ✗ (private developer project)
 
-## SCORING (1-10)
+## SCORING — FOUR DIMENSIONS (each 1-10 integer)
 
-Start at base score of 5 for any qualifying article (we're being very selective, so anything that passes the filter is already meaningful).
+For every KEPT article, assign four sub-scores. Each is an integer from 1 to 10.
 
-- +3 if: Water/sewer extension to previously UNSERVED area (wells/septic → municipal service)
-- +2 if: New road or interchange creating access to previously landlocked/unserved land
-- +2 if: Utility district creation (MUD, PID, CDD, TIF) for undeveloped land
-- +1 if: Specific acreage or parcel count mentioned
-- +1 if: Government entity has voted/approved (not just "proposed" or "discussing")
-- +1 if: Timeline or construction start date mentioned
-- -2 if: Article is vague about what new capacity is being created
-- -2 if: Cannot identify a specific area where parcels could be acquired
-- Cap at 10, floor at 1
+### 1. profit_potential (weight: 0.35)
+How large is the opportunity? Scale of new capacity being created.
+- 9-10: Large-scale utility extension to hundreds of unserved acres, new interchange opening thousands of acres
+- 7-8: Significant water/sewer extension, utility district for 100+ acres, new road creating meaningful access
+- 5-6: Moderate capacity expansion, treatment plant upgrade enabling growth
+- 3-4: Smaller-scale project, limited surrounding impact area
+- 1-2: Minimal new development capacity created
+
+### 2. timing (weight: 0.30)
+How early are we in the opportunity window?
+- 9-10: Pre-approval announcement, feasibility study just approved, RFP just released
+- 7-8: Recently approved/voted, engineering phase, not yet under construction
+- 5-6: Bid phase, construction starting soon, land prices may be adjusting
+- 3-4: Under construction, partially complete
+- 1-2: Nearly complete or already operational
+
+### 3. actionability (weight: 0.20)
+Can we identify specific parcels to acquire?
+- 9-10: Specific roads, intersections, parcels, or acreage named; exact service area defined
+- 7-8: Specific corridor or area identified, county/city named with enough detail to find parcels
+- 5-6: General area known but boundaries unclear
+- 3-4: Only city or county level, no specific area
+- 1-2: Vague regional reference only
+
+### 4. confidence (weight: 0.15)
+How reliable is this information?
+- 9-10: Official government minutes, filings, or vote records; direct quotes from officials
+- 7-8: Local newspaper with specific details; official press release
+- 5-6: Regional news outlet, some details confirmed
+- 3-4: Blog or aggregator, limited sourcing
+- 1-2: Unnamed sources, speculative language
+
+### Composite formula
+```
+overall_score = round(profit_potential * 0.35 + timing * 0.30 + actionability * 0.20 + confidence * 0.15, 1)
+```
+Compute the overall_score yourself using this formula. Also return all four sub-scores so they can be verified.
 
 ## CLASSIFICATION (assign exactly one):
 - WATER/SEWER EXTENSION — new utility service reaching previously unserved land
@@ -149,7 +177,11 @@ Start at base score of 5 for any qualifying article (we're being very selective,
   "decision": "KEEP" or "KILL",
   "headline": "original headline",
   "classification": "one of the classifications above",
-  "score": 1-10,
+  "profit_potential": 1-10,
+  "timing": 1-10,
+  "actionability": 1-10,
+  "confidence": 1-10,
+  "score": "composite (use formula above)",
   "city": "",
   "state": "two-letter state code",
   "location_details": "specific area, corridor, district, roads, parcels affected",
@@ -163,6 +195,8 @@ Start at base score of 5 for any qualifying article (we're being very selective,
   "next_steps": "specific actions: which parcels to research, which county GIS to check, which utility service area maps to pull, what meeting to attend"
 }
 ```
+
+For KILL decisions, you may set all sub-scores to 0 and score to 0.
 
 **Next steps guidance:** The most actionable next step is always: identify parcels that will gain utility access or road access they currently lack. Specify the county assessor/GIS portal to check. Mention utility service area maps. If a meeting date is mentioned, include it.
 

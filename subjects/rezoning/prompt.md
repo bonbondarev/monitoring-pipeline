@@ -103,31 +103,47 @@ Large-scale upzoning often appears WITHOUT the word "rezoning." Treat ALL of the
 
 DO NOT require the literal word "rezoning" to classify an article as a zoning change.
 
-## SCORING (1-10)
+## SCORING — FOUR DIMENSIONS (each 1-10 integer)
 
-Start at base score of 3 for any qualifying US article.
+For every KEPT article, assign four sub-scores. Each is an integer from 1 to 10.
 
-Add +3 if the change type is:
-- TOD overlay/zone creation
-- Corridor rezoning with density increase
-- Form-based code adoption
-- New mixed-use overlay district
-- FLUM amendment to higher-density designation
+### 1. profit_potential (weight: 0.35)
+How large is the opportunity? Scale of the zoning change and area affected.
+- 9-10: Area-wide TOD overlay, corridor rezoning affecting hundreds of parcels, citywide upzoning
+- 7-8: Multi-block overlay district, significant density increase along major corridor
+- 5-6: Neighborhood-level comp plan amendment, moderate density increase
+- 3-4: Smaller overlay or limited area affected
+- 1-2: Minimal density increase or very small area
 
-Add +2 if government explicitly initiated the change (city council vote, planning department recommendation, ordinance introduced).
+### 2. timing (weight: 0.30)
+How early are we in the opportunity window?
+- 9-10: Study just recommended rezoning, planning commission just started review, first reading
+- 7-8: Public hearing scheduled, ordinance introduced, staff recommends approval
+- 5-6: Approved but recently — market hasn't fully priced it in
+- 3-4: Approved months ago, prices adjusting
+- 1-2: Fully implemented and priced in
 
-Add +1 for each early-signal phrase present (max +3):
-- "staff recommends approval"
-- "planning commission approved/reviewing"
-- "ordinance introduced"
-- "first reading" / "second reading"
-- "public hearing scheduled"
-- "proposed overlay district"
-- "study recommends rezoning"
+### 3. actionability (weight: 0.20)
+Can we identify specific parcels to acquire?
+- 9-10: Specific streets, station areas, or parcels named; overlay boundaries defined
+- 7-8: Corridor or district clearly identified, city named with enough detail to find parcels
+- 5-6: General area known but exact overlay boundaries unclear
+- 3-4: Only city or county level, no specific area
+- 1-2: Vague regional reference only
 
-Subtract -2 if the article is vague about what specifically changes (no mention of density, height, use changes).
+### 4. confidence (weight: 0.15)
+How reliable is this information?
+- 9-10: Official government minutes, ordinance text, or vote records; direct quotes from officials
+- 7-8: Local newspaper with specific details; official press release
+- 5-6: Regional news outlet, some details confirmed
+- 3-4: Blog or aggregator, limited sourcing
+- 1-2: Unnamed sources, speculative language
 
-Cap score at 10, floor at 1.
+### Composite formula
+```
+overall_score = round(profit_potential * 0.35 + timing * 0.30 + actionability * 0.20 + confidence * 0.15, 1)
+```
+Compute the overall_score yourself using this formula. Also return all four sub-scores so they can be verified.
 
 ## CLASSIFICATION
 
@@ -152,7 +168,11 @@ Return a valid JSON array. For each article:
   "decision": "KEEP" or "KILL",
   "headline": "original headline",
   "classification": "one of the classifications above",
-  "score": 1-10,
+  "profit_potential": 1-10,
+  "timing": 1-10,
+  "actionability": 1-10,
+  "confidence": 1-10,
+  "score": "composite (use formula above)",
   "city": "",
   "state": "two-letter state code",
   "location_details": "specific area, corridor, district, parcels, streets if available",
@@ -165,6 +185,8 @@ Return a valid JSON array. For each article:
   "source_url": "",
   "next_steps": "what an investor should do immediately — which parcels to look at, which county assessor site to check, what meeting to attend"
 }
+
+For KILL decisions, you may set all sub-scores to 0 and score to 0.
 
 Return ONLY the JSON array. No other text.
 If no articles qualify, return all with decision "KILL".
