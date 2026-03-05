@@ -134,14 +134,13 @@ def run_pipeline(
         if not dry_run and config.get("telegram_enabled"):
             bot = _get_telegram_bot(subject_name, subject_emoji)
             if bot:
-                stats = {
-                    "date": date_str,
-                    "total_scanned": 0,
-                    "kept_count": 0,
-                    "killed_count": 0,
-                }
                 try:
-                    bot.send_no_results(stats)
+                    bot._send_message(
+                        f"{bot._header(date_str)}\n\n"
+                        f"0 articles fetched from Google News.\n"
+                        f"Possible rate-limit or connectivity issue.\n"
+                        f"Check RSS feeds manually."
+                    )
                 except Exception as e:
                     logger.error("Telegram delivery failed: %s", e)
 
