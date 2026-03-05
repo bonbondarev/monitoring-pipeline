@@ -268,6 +268,7 @@ def run_pipeline(
                 "timeline": a.get("timeline", ""),
                 "reasoning": a.get("reasoning", ""),
                 "next_steps": a.get("next_steps", ""),
+                "full_text": a.get("full_text", ""),
                 "subject": subject_slug,
                 "date": date_str,
             }
