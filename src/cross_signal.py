@@ -12,8 +12,12 @@ logger = logging.getLogger(__name__)
 _STRIP_PREFIXES = [
     "city of ", "town of ", "village of ", "township of ",
     "borough of ", "county of ",
+    "unincorporated ", "greater ", "metro ", "new ",
 ]
-_STRIP_SUFFIXES = [" county", " parish", " borough", " township"]
+_STRIP_SUFFIXES = [
+    " county", " parish", " borough", " township",
+    " city", " town", " village", " cdp", " area",
+]
 
 
 def detect_cross_signals(
@@ -102,6 +106,11 @@ def _geographic_match(opp_a: dict, opp_b: dict) -> bool:
 
     # Match on county
     if county_a and county_b and county_a == county_b:
+        return True
+
+    # Substring fallback: catches "Springfield" matching "Springfield Township"
+    if (city_a and city_b and len(city_a) >= 5 and len(city_b) >= 5
+            and (city_a in city_b or city_b in city_a)):
         return True
 
     return False
