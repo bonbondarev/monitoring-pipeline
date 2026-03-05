@@ -92,6 +92,14 @@ ${CROSS_SIGNAL_CMD}"
 
 echo "  Cron for cross-signal: 8:45 AM Eastern"
 
+# Add weekly summary cron at 9:00 AM Eastern on Mondays
+WEEKLY_CMD="0 9 * * 1 cd ${PROJECT_DIR} && ${PROJECT_DIR}/venv/bin/python src/main.py --weekly-summary >> ${PROJECT_DIR}/logs/weekly-summary-cron.log 2>&1"
+NEW_CRON="${NEW_CRON}
+# monitoring-pipeline: weekly summary Mondays 9:00 AM Eastern
+${WEEKLY_CMD}"
+
+echo "  Cron for weekly summary: Mondays 9:00 AM Eastern"
+
 echo "${NEW_CRON}" | crontab -
 
 echo ""

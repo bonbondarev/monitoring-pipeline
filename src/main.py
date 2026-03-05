@@ -419,6 +419,121 @@ def run_cross_signal(date: str | None = None, dry_run: bool = False) -> None:
     print(f"\nCross-signal complete: {len(cross_signals)} signals found")
 
 
+def run_weekly_summary() -> None:
+    """Aggregate last 7 days of run logs and send a Telegram summary."""
+    from datetime import timedelta
+
+    today = datetime.now().date()
+    subjects = list_subjects()
+    if not subjects:
+        logger.error("No subjects found")
+        return
+
+    # Aggregate per-subject stats
+    subject_stats = {}
+    total_tokens = {"input_tokens": 0, "output_tokens": 0, "cache_read_input_tokens": 0}
+
+    for s in subjects:
+        slug = s["slug"]
+        log_dir = PROJECT_ROOT / "logs" / slug
+        stats = {"fetched": 0, "kept": 0, "killed": 0, "runs": 0}
+
+        for day_offset in range(7):
+            date = today - timedelta(days=day_offset)
+            date_prefix = date.isoformat()
+            if not log_dir.exists():
+                continue
+            for log_file in sorted(log_dir.glob(f"{date_prefix}_*.json")):
+                try:
+                    data = json.loads(log_file.read_text(encoding="utf-8"))
+                    if data.get("dry_run"):
+                        continue
+                    stats["fetched"] += data.get("articles_fetched", 0)
+                    stats["kept"] += data.get("articles_kept", 0)
+                    stats["killed"] += data.get("articles_killed", 0)
+                    stats["runs"] += 1
+                    tu = data.get("token_usage", {})
+                    for k in total_tokens:
+                        total_tokens[k] += tu.get(k, 0)
+                except (json.JSONDecodeError, OSError):
+                    continue
+
+        subject_stats[slug] = stats
+
+    # Stage 2 GO/MAYBE/KILL counts
+    stage2_dir = PROJECT_ROOT.parent / "deal-research" / "logs"
+    go_count = maybe_count = kill_count = 0
+    if stage2_dir.exists():
+        for day_offset in range(7):
+            date = today - timedelta(days=day_offset)
+            log_file = stage2_dir / f"{date.isoformat()}.json"
+            if not log_file.exists():
+                continue
+            try:
+                data = json.loads(log_file.read_text(encoding="utf-8"))
+                for r in data.get("results", []):
+                    rec = r.get("research", {}).get("recommendation", "")
+                    if rec == "GO":
+                        go_count += 1
+                    elif rec == "MAYBE":
+                        maybe_count += 1
+                    elif rec == "KILL":
+                        kill_count += 1
+            except (json.JSONDecodeError, OSError):
+                continue
+
+    # Cost estimate (claude-sonnet-4 pricing)
+    input_cost = total_tokens["input_tokens"] / 1_000_000 * 3.0
+    output_cost = total_tokens["output_tokens"] / 1_000_000 * 15.0
+    cache_cost = total_tokens["cache_read_input_tokens"] / 1_000_000 * 0.30
+    total_cost = input_cost + output_cost + cache_cost
+
+    # Build message
+    lines = ["Weekly Summary (last 7 days)", ""]
+    total_fetched = total_kept = total_killed = 0
+    for slug, stats in subject_stats.items():
+        total_fetched += stats["fetched"]
+        total_kept += stats["kept"]
+        total_killed += stats["killed"]
+        keep_rate = (
+            f"{stats['kept'] / stats['fetched'] * 100:.0f}%"
+            if stats["fetched"] > 0 else "N/A"
+        )
+        lines.append(f"{slug}: {stats['fetched']} fetched, {stats['kept']} kept, "
+                      f"{stats['killed']} killed ({keep_rate} keep rate)")
+
+    overall_rate = (
+        f"{total_kept / total_fetched * 100:.0f}%"
+        if total_fetched > 0 else "N/A"
+    )
+    lines.append("")
+    lines.append(f"Total: {total_fetched} fetched, {total_kept} kept, "
+                  f"{total_killed} killed")
+    lines.append(f"Average keep rate: {overall_rate}")
+    lines.append("")
+    lines.append(f"Tokens: {total_tokens['input_tokens']:,} in / "
+                  f"{total_tokens['output_tokens']:,} out / "
+                  f"{total_tokens['cache_read_input_tokens']:,} cache-read")
+    lines.append(f"Estimated cost: ${total_cost:.2f}")
+
+    if go_count or maybe_count or kill_count:
+        lines.append("")
+        lines.append(f"Stage 2: {go_count} GO / {maybe_count} MAYBE / {kill_count} KILL")
+
+    text = "\n".join(lines)
+    logger.info("Weekly summary:\n%s", text)
+
+    bot = _get_telegram_bot("Weekly Summary", "")
+    if bot:
+        try:
+            bot._send_message(text)
+            logger.info("Weekly summary sent to Telegram")
+        except Exception as e:
+            logger.error("Failed to send weekly summary: %s", e)
+    else:
+        print(text)
+
+
 def test_telegram() -> None:
     """Send a test message to Telegram and exit."""
     bot = _get_telegram_bot()
@@ -500,6 +615,11 @@ def main():
         help="Skip cross-day deduplication (for testing)",
     )
     parser.add_argument(
+        "--weekly-summary",
+        action="store_true",
+        help="Aggregate last 7 days of logs and send Telegram summary",
+    )
+    parser.add_argument(
         "--cross-signal",
         action="store_true",
         help="Run cross-subject signal detection (infrastructure + rezoning overlap)",
@@ -534,6 +654,11 @@ def main():
     # --- Test Telegram ---
     if args.test_telegram:
         test_telegram()
+        return
+
+    # --- Weekly summary ---
+    if args.weekly_summary:
+        run_weekly_summary()
         return
 
     # --- Cross-signal detection ---
