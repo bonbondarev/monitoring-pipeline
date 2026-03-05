@@ -26,6 +26,7 @@ from src.cross_signal import (  # noqa: E402
     save_cross_signals,
 )
 from src.dedup import deduplicate_articles, get_dedup_stats  # noqa: E402
+from src.dedup_history import load_seen_urls  # noqa: E402
 from src.enrichment import enrich_articles, get_enrichment_stats  # noqa: E402
 from src.fetcher import fetch_all_articles  # noqa: E402
 from src.reporter import generate_report  # noqa: E402
@@ -77,7 +78,7 @@ def run_pipeline(
     subject: dict, days_override: int | None = None, dry_run: bool = False,
     use_batch_api: bool = False, skip_enrichment: bool = False,
     limit: int | None = None, skip_dedup: bool = False,
-    dedup_threshold: float = 0.80,
+    dedup_threshold: float = 0.80, no_history_dedup: bool = False,
 ) -> dict:
     """Execute the full pipeline for a single subject. Returns run summary dict."""
     config = subject["config"]
@@ -209,11 +210,31 @@ def run_pipeline(
     run_data["token_usage"] = token_usage
 
     min_score = config.get("min_opportunity_score", 5)
-    kept = [
-        a
-        for a in analyzed
-        if a.get("decision") == "KEEP" and a.get("score", 0) >= min_score
-    ]
+
+    # --- CROSS-DAY DEDUP ---
+    if not no_history_dedup:
+        seen_urls = load_seen_urls([subject_slug])
+        pre_dedup = [
+            a for a in analyzed
+            if a.get("decision") == "KEEP" and a.get("score", 0) >= min_score
+        ]
+        kept = [
+            a for a in pre_dedup
+            if a.get("source_url", a.get("url", "")) not in seen_urls
+        ]
+        history_suppressed = len(pre_dedup) - len(kept)
+        if history_suppressed:
+            logger.info(
+                "[%s] Cross-day dedup: %d already seen in last 7 days",
+                subject_slug, history_suppressed,
+            )
+        run_data["history_dedup_suppressed"] = history_suppressed
+    else:
+        kept = [
+            a
+            for a in analyzed
+            if a.get("decision") == "KEEP" and a.get("score", 0) >= min_score
+        ]
     killed = [a for a in analyzed if a not in kept]
     kept.sort(key=lambda a: a.get("score", 0), reverse=True)
 
@@ -475,6 +496,11 @@ def main():
         help="Cosine similarity threshold for dedup clustering (default: 0.80)",
     )
     parser.add_argument(
+        "--no-history-dedup",
+        action="store_true",
+        help="Skip cross-day deduplication (for testing)",
+    )
+    parser.add_argument(
         "--cross-signal",
         action="store_true",
         help="Run cross-subject signal detection (infrastructure + rezoning overlap)",
@@ -542,6 +568,7 @@ def main():
                     limit=args.limit,
                     skip_dedup=args.skip_dedup,
                     dedup_threshold=args.dedup_threshold,
+                    no_history_dedup=args.no_history_dedup,
                 )
                 log_path = save_run_log(run_data, subject_slug=slug)
                 logger.info("[%s] Run log saved to %s", slug, log_path)
@@ -583,6 +610,7 @@ def main():
             limit=args.limit,
             skip_dedup=args.skip_dedup,
             dedup_threshold=args.dedup_threshold,
+            no_history_dedup=args.no_history_dedup,
         )
         log_path = save_run_log(run_data, subject_slug=args.subject)
         logger.info("Run log saved to %s", log_path)
