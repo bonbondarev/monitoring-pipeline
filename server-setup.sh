@@ -74,7 +74,7 @@ for subject_dir in subjects/*/; do
 
     CRON_MINUTE=$(( MINUTE_OFFSET % 60 ))
     CRON_HOUR=$(( 8 + MINUTE_OFFSET / 60 ))
-    CRON_CMD="${CRON_MINUTE} ${CRON_HOUR} * * * cd ${PROJECT_DIR} && ${PROJECT_DIR}/venv/bin/python src/main.py --subject ${subject} >> ${PROJECT_DIR}/logs/${subject}/cron.log 2>&1"
+    CRON_CMD="${CRON_MINUTE} ${CRON_HOUR} * * * cd ${PROJECT_DIR} && ${PROJECT_DIR}/venv/bin/python src/main.py --subject ${subject} --batch-api >> ${PROJECT_DIR}/logs/${subject}/cron.log 2>&1"
 
     NEW_CRON="${NEW_CRON}
 # monitoring-pipeline: ${subject} daily ${CRON_HOUR}:$(printf '%02d' $CRON_MINUTE) AM Eastern
