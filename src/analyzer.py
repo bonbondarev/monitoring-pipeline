@@ -387,7 +387,6 @@ def _validate_results(results: list, optional_defaults: dict) -> list[dict]:
 
         # Extract and clamp sub-scores, compute composite as safety net
         sub_score_fields = ("profit_potential", "timing", "actionability", "confidence")
-        weights = (0.35, 0.30, 0.20, 0.15)
         has_sub_scores = any(r.get(f) for f in sub_score_fields)
 
         if has_sub_scores:
